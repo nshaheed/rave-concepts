@@ -1,0 +1,13 @@
+[project]
+name = "rave-tcv"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "acids-rave>=2.3.1",
+    "ffmpeg>=1.4",
+    "gin>=0.1.6",
+    "torchaudio>=2.5.0",
+    "tqdm>=4.67.1",
+]
