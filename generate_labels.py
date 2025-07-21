@@ -9,12 +9,17 @@ import gin
 from absl import app, flags, logging
 from torch.autograd import Variable
 import cached_conv as cc
+import numpy as np
+
+# Calculate the latents of a dataset and their corresponding RMS and
+# save the tensors to a file
 
 FLAGS = flags.FLAGS
 flags.DEFINE_string('model', required=True, default=None, help="model path")
 flags.DEFINE_multi_string('input', required=True, default=None, help="model inputs (file or folder)")
 flags.DEFINE_integer('gpu', default=-1, help='GPU to use')
-flags.DEFINE_string('out_path', 'generations', help="output path")
+flags.DEFINE_string('latents_path', './data/latents.np', help="save path for latents")
+flags.DEFINE_string('rms_path', './data/rms.np', help="save path for rms")
 
 # size of latent in samples
 LATENT_SIZE = 2048
@@ -81,26 +86,19 @@ def main(argv):
     cc.MAX_BATCH_SIZE = 8
 
     # define linear regression model
-    learning_rate = 0.001
+    learning_rate = 0.00001
 
     linear_regression = torch.nn.Linear(128, 1).to(device)
     criterion = torch.nn.MSELoss()
-    optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate)
+    optimizer = torch.optim.SGD(linear_regression.parameters(), lr=learning_rate)
 
-    epochs = 1000
+    epochs = 100000
 
-    latents = None
-    out = None
+    latents = []
+    rmss = []
 
-    epoch_progress_bar = tqdm.tqdm(range(epochs), leave=True)
-    for epoch in epoch_progress_bar:
-
-        total_loss = 0
-        progress_bar = tqdm.tqdm(audio_files, leave=False)
-
-        for i, (d, f) in enumerate(progress_bar):
-            linear_regression.train()
-
+    for i, (d, f) in enumerate(tqdm.tqdm(audio_files, leave=False)):
+        with torch.no_grad():
             try:
                 x, sr = torchaudio.load(f)
             except:
@@ -117,37 +115,28 @@ def main(argv):
                     print('[Warning] file %s has %d channels, butt model has %d channels ; skipping'%(f, model.n_channels))
                     x = x.to(device)
 
-
-            if True:
-                latents = model.encode(x[None], return_mb=False).detach()
-                latents = model.encoder.reparametrize(latents)[0]
-                out = model.decode(latents)
-
-            # calculate RMS
-            chunks = out.reshape(latents.shape[-1],-1) # resize in terms of how many latents there are
-
-            # rms = (chunks.square().sum(-2) / LATENT_SIZE).sqrt()
+            # breakpoint()
+            latent = model.encode(x[None], return_mb=False).detach()
+            latent = model.encoder.reparametrize(latent)[0]
+            # latents.append(latent)
+            out = model.decode(latent)
+            chunks = out.reshape(latent.shape[-1],-1) # resize in terms of how many latents there are
             rms = (chunks.square().sum(-1) / LATENT_SIZE).sqrt()
 
-            # linear regression
-            inputs = Variable(latents).squeeze(0).transpose(0,1)
-            labels = Variable(rms.unsqueeze(0).transpose(0,1))
+            if latents is None:
+                latents = latent
+                rmss = rms
+            else:
+                # latents = torch.cat((latents, latent), dim=2)
+                # rmss = torch.cat((rmss, rms), dim=0)
+                latents.append(latent)
+                rmss.append(rms)
 
-            outputs = linear_regression(inputs)
-            loss = criterion(outputs, labels)
+    latents = torch.cat(latents, dim=2)
+    rmss = torch.cat(rmss, dim=0)
 
-            # clear gradients between epochs
-            optimizer.zero_grad()
-
-            loss.backward()
-
-            optimizer.step()
-
-            progress_bar.set_description(f'loss: {loss:.5f}')
-
-            total_loss += loss.item()
-
-        epoch_progress_bar.set_description(f'total loss: {total_loss:.5f}')
+    np.save(FLAGS.latents_path, latents.numpy())
+    np.save(FLAGS.rms_path, rmss.numpy())
 
 
 if __name__ == "__main__":

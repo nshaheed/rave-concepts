@@ -11,3 +11,6 @@ wheels/
 data/
 generations/
 /models/
+*.wav
+*~
+/processed/
