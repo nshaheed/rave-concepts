@@ -15,17 +15,19 @@ class RandomGain(IterableDataset):
     def __init__(
             self,
             data_dir,
+            device='cpu',
             sample_rate=44100,
     ):
         self.files = get_audio_files(data_dir)
         self.encdec = EncoderDecoder()
         self.song_batch_size = 4
         self.sr = sample_rate
+        self.device = device
 
     def __iter__(self):
         while True:
-            latents_orig = torch.zeros(65,0)
-            latents_gain = torch.zeros(64,0)
+            latents_orig = torch.zeros(65,0).to(self.device)
+            latents_gain = torch.zeros(64,0).to(self.device)
             gain = []
             
             for _ in range(self.song_batch_size):
@@ -36,6 +38,10 @@ class RandomGain(IterableDataset):
 
                 # load and resmaple
                 audio, sr = torchaudio.load(audio_file)
+
+                # only take first channel
+                if audio.shape[0] > 1:
+                    audio = audio[0]
 
                 resampler = torchaudio.transforms.Resample(sr, self.sr)
                 audio = resampler(audio)
@@ -52,9 +58,9 @@ class RandomGain(IterableDataset):
                 audio_gain = gain * audio
 
                 # encode both
-                audio_latent = self.encdec.encode(audio).squeeze()
-                audio_gain_latent = self.encdec.encode(audio_gain).squeeze()
-                gain_tensor = torch.full((1,audio_latent.shape[-1]), gain)
+                audio_latent = self.encdec.encode(audio, max_waveform_length=44100*1).squeeze().to(self.device)
+                audio_gain_latent = self.encdec.encode(audio_gain, max_waveform_length=44100*1).squeeze().to(self.device)
+                gain_tensor = torch.full((1,audio_latent.shape[-1]), gain).to(self.device)
 
                 audio_latent = torch.cat([audio_latent,gain_tensor], 0) # add gain to the end
 

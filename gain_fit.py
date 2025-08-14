@@ -47,7 +47,7 @@ def main(args):
     max_steps = 30000
     batch_size = 100 # idk man
 
-    data = RandomGain(args.data)
+    data = RandomGain(args.data, device)
     loader = DataLoader(data, batch_size=batch_size)
 
     batch_rerun = 10
