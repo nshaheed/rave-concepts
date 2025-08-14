@@ -18,8 +18,8 @@ FLAGS = flags.FLAGS
 flags.DEFINE_string('model', required=True, default=None, help="model path")
 flags.DEFINE_multi_string('input', required=True, default=None, help="model inputs (file or folder)")
 flags.DEFINE_integer('gpu', default=-1, help='GPU to use')
-flags.DEFINE_string('latents_path', './data/latents.np', help="save path for latents")
-flags.DEFINE_string('rms_path', './data/rms.np', help="save path for rms")
+flags.DEFINE_string('latents_path', './data/latents.npy', help="save path for latents")
+flags.DEFINE_string('rms_path', './data/rms.npy', help="save path for rms")
 
 # size of latent in samples
 LATENT_SIZE = 2048
@@ -79,6 +79,10 @@ def main(argv):
     # parse inputs
     audio_files = sum([get_audio_files(f) for f in paths], [])
     receptive_field = rave.core.get_minimum_size(model)
+
+    # with torch.no_grad():
+    #     print(rave.core.get_rave_receptive_field(model))
+    breakpoint()
 
     # logging.info(f'{audio_files=}')
 

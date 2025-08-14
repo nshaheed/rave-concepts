@@ -107,11 +107,16 @@ def main(argv):
         latent = model.encode(x[None], return_mb=False).detach()
         latent = model.encoder.reparametrize(latent)[0]
         env = torch.linspace(0, 280, latent.shape[-1])
-        env = torch.logspace(start=0.01, end=1.0, steps=latent.shape[-1], base=280)
+        env = torch.logspace(start=0.01, end=1.0, steps=latent.shape[-1], base=280) - 1
+        # go towards silence
+        # env = (torch.logspace(start=0.01, end=1.0, steps=latent.shape[-1], base=280) - 1) * -0.01
+        # env = torch.logspace(start=0.01, end=1.0, steps=latent.shape[-1], base=7) - 1
+
+        # breakpoint()
 
         # apply concept envelope
         # TODO make this more efficient if I need to
-        for i in range(latent.shape[1]):
+        for i in range(latent.shape[-1]):
             latent[0,:,i] = latent[0,:,i] + (env[i] * rcv)
 
 
