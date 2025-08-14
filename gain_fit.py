@@ -16,6 +16,12 @@ parser.add_argument(
     help="which device?"
 )
 
+parser.add_argument(
+    "--data",
+    type=str,
+    help="data dir"
+)
+
 args = parser.parse_args()
 
 
@@ -41,7 +47,7 @@ def main(args):
     max_steps = 30000
     batch_size = 100 # idk man
 
-    data = RandomGain('./data')
+    data = RandomGain(args.data)
     loader = DataLoader(data, batch_size=batch_size)
 
     batch_rerun = 10
