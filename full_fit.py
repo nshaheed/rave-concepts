@@ -16,11 +16,12 @@ import numpy as np
 # TODO decaying lr?
 
 FLAGS = flags.FLAGS
-flags.DEFINE_integer('gpu', default=-1, help='GPU to use')
-flags.DEFINE_string('out_path', 'generations', help="output path")
+flags.DEFINE_integer("gpu", default=-1, help="GPU to use")
+flags.DEFINE_string("out_path", "generations", help="output path")
 
 # size of latent in samples
 LATENT_SIZE = 2048
+
 
 def get_audio_files(path):
     audio_files = []
@@ -29,22 +30,24 @@ def get_audio_files(path):
     # without torchaudio.get_audio_backend() as it's been deprecated
     # and returns None
     # valid_exts = rave.core.get_valid_extensions()
-    valid_exts = ['.wav', '.flac', '.ogg', '.aiff', '.aif', '.aifc']
+    valid_exts = [".wav", ".flac", ".ogg", ".aiff", ".aif", ".aifc"]
     for root, _, files in os.walk(path):
-        valid_files = list(filter(lambda x: os.path.splitext(x)[1] in valid_exts, files))
+        valid_files = list(
+            filter(lambda x: os.path.splitext(x)[1] in valid_exts, files)
+        )
         audio_files.extend([(path, os.path.join(root, f)) for f in valid_files])
     return audio_files
 
 
 def main(argv):
-    torch.set_float32_matmul_precision('high')
+    torch.set_float32_matmul_precision("high")
     torch.manual_seed(3)
 
     # device
     if FLAGS.gpu >= 0:
-        device = torch.device('cuda:%d'%FLAGS.gpu)
+        device = torch.device("cuda:%d" % FLAGS.gpu)
     else:
-        device = torch.device('cpu')
+        device = torch.device("cpu")
 
     cc.MAX_BATCH_SIZE = 8
 
@@ -58,14 +61,14 @@ def main(argv):
     epochs = 30000
 
     # TODO make these flags
-    latents = torch.Tensor(np.load('processed/latents_large.npy'))
-    rmss = torch.Tensor(np.load('processed/rms_large.npy'))
+    latents = torch.Tensor(np.load("processed/latents_large.npy"))
+    rmss = torch.Tensor(np.load("processed/rms_large.npy"))
 
     epoch_progress_bar = tqdm.tqdm(range(epochs), leave=True)
     for epoch in epoch_progress_bar:
         # linear regression
-        inputs = latents.squeeze(0).transpose(0,1)
-        labels = rmss.unsqueeze(0).transpose(0,1)
+        inputs = latents.squeeze(0).transpose(0, 1)
+        labels = rmss.unsqueeze(0).transpose(0, 1)
 
         # breakpoint()
         outputs = linear_regression(inputs)
@@ -78,10 +81,11 @@ def main(argv):
 
         optimizer.step()
 
-        epoch_progress_bar.set_description(f'loss: {loss.item():.5f}')
+        epoch_progress_bar.set_description(f"loss: {loss.item():.5f}")
 
-    print(f'{linear_regression.weight=}')
-    print(f'{linear_regression.bias=}')
+    print(f"{linear_regression.weight=}")
+    print(f"{linear_regression.bias=}")
+
 
 if __name__ == "__main__":
     app.run(main)
