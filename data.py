@@ -16,9 +16,13 @@ class RandomGain(IterableDataset):
         self,
         data_dir,
         device="cpu",
+        files=None,
         sample_rate=44100,
     ):
-        self.files = get_audio_files(data_dir)
+        if files is None:
+            self.files = get_audio_files(data_dir)
+        else:
+            self.files = files
         self.encdec = EncoderDecoder()
         self.song_batch_size = 8
         self.sr = sample_rate
