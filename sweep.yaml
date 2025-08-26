@@ -1,0 +1,26 @@
+program: gain_fit_sweep.py
+method: bayes  # Bayesian search is efficient. Alternatives: 'grid', 'random'
+metric:
+  name: val_loss
+  goal: minimize
+parameters:
+  data_dir:
+    value: "/scratch/nshaheed/mtg-jamendo/" # <-- IMPORTANT: Set your data directory here
+  device:
+    value: "cuda" # or "mps", "cpu"
+  model_type:
+    value: 'effect'
+  optimizer:
+    value: 'adam'
+  learning_rate:
+    distribution: log_uniform_values
+    min: 1.0e-6
+    max: 1.0e-2
+  batch_size:
+    value: 256
+  max_steps:
+    value: 10000 # All runs will use the same number of steps
+  hidden_dims_scale:
+    values: [1, 2, 4, 8, 16, 32]
+  num_inner_layers:
+    values: [1, 2, 4, 8, 16, 32]
